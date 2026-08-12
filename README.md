@@ -1,8 +1,17 @@
-# vinext-starter
+# iFix Workshop
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+为单技师电子产品维修工作室设计的订单追踪与经营管理系统。适用于电脑、手机、相机、电视、游戏主机及小家电等维修业务。
+
+## 主要功能
+
+- 从接收、检测、待件、维修、测试、可取件到已取件的完整工单流程
+- 客户、设备、序列号、故障、交付日期与维修备注记录
+- 零件采购、物流状态、到货日期及关联工单成本跟踪
+- 报价、实际收费、收款状态、待收款与毛利汇总
+- 逾期和紧急工单提醒、交付排期及历史工单搜索
+- 响应式工作台，可在桌面和手机上使用
+
+数据持久化在 Cloudflare D1，应用由 Cloudflare Workers 承载。
 
 ## Prerequisites
 

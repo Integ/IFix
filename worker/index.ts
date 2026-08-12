@@ -40,6 +40,9 @@ async function ensureWorkshopSchema(db: D1Database) {
       received_at text NOT NULL,
       due_at text NOT NULL,
       estimate real DEFAULT 0 NOT NULL,
+      actual_charge real DEFAULT 0 NOT NULL,
+      is_paid integer DEFAULT 0 NOT NULL,
+      serial_number text DEFAULT '' NOT NULL,
       notes text DEFAULT '' NOT NULL,
       created_at text DEFAULT CURRENT_TIMESTAMP NOT NULL,
       updated_at text DEFAULT CURRENT_TIMESTAMP NOT NULL
@@ -55,7 +58,20 @@ async function ensureWorkshopSchema(db: D1Database) {
       expected_at text DEFAULT '' NOT NULL,
       created_at text DEFAULT CURRENT_TIMESTAMP NOT NULL
     )`),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_repairs_status_due_at ON repairs (status, due_at)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_repairs_customer ON repairs (customer)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_parts_repair_id ON parts (repair_id)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_parts_status_expected_at ON parts (status, expected_at)"),
   ]);
+
+  // Keep older workshop databases compatible before hosted migrations run.
+  const columns = await db.prepare("PRAGMA table_info(repairs)").all<{ name: string }>();
+  const names = new Set(columns.results.map((column) => column.name));
+  const upgrades: D1PreparedStatement[] = [];
+  if (!names.has("actual_charge")) upgrades.push(db.prepare("ALTER TABLE repairs ADD COLUMN actual_charge real DEFAULT 0 NOT NULL"));
+  if (!names.has("is_paid")) upgrades.push(db.prepare("ALTER TABLE repairs ADD COLUMN is_paid integer DEFAULT 0 NOT NULL"));
+  if (!names.has("serial_number")) upgrades.push(db.prepare("ALTER TABLE repairs ADD COLUMN serial_number text DEFAULT '' NOT NULL"));
+  if (upgrades.length) await db.batch(upgrades);
 }
 
 async function seedWorkshop(db: D1Database) {
@@ -92,7 +108,7 @@ async function workshopApi(request: Request, db: D1Database) {
     await seedWorkshop(db);
     if (request.method === "GET") {
       const [repairRows, partRows] = await Promise.all([
-        db.prepare(`SELECT id, ticket_no AS ticketNo, device, brand_model AS brandModel, customer, phone, issue, status, priority, received_at AS receivedAt, due_at AS dueAt, estimate, notes FROM repairs ORDER BY created_at DESC, id DESC`).all(),
+        db.prepare(`SELECT id, ticket_no AS ticketNo, device, brand_model AS brandModel, customer, phone, issue, status, priority, received_at AS receivedAt, due_at AS dueAt, estimate, actual_charge AS actualCharge, is_paid AS isPaid, serial_number AS serialNumber, notes FROM repairs ORDER BY created_at DESC, id DESC`).all(),
         db.prepare(`SELECT id, repair_id AS repairId, name, supplier, order_no AS orderNo, cost, status, expected_at AS expectedAt FROM parts ORDER BY created_at DESC, id DESC`).all(),
       ]);
       return json({ repairs: repairRows.results, parts: partRows.results });
@@ -108,20 +124,35 @@ async function workshopApi(request: Request, db: D1Database) {
     if (request.method === "POST") {
       const required = ["device", "brandModel", "customer", "issue", "dueAt"];
       if (required.some((key) => !payload[key])) return json({ error: "请填写所有必填项" }, 400);
-      const latest = await db.prepare("SELECT MAX(id) AS id FROM repairs").first<{ id: number | null }>();
-      const ticketNo = `FIX-${1049 + (latest?.id ?? 0)}`;
-      await db.prepare(`INSERT INTO repairs (ticket_no, device, brand_model, customer, phone, issue, status, priority, received_at, due_at, estimate, notes) VALUES (?, ?, ?, ?, ?, ?, 'received', ?, ?, ?, ?, ?)`)
-        .bind(ticketNo, String(payload.device), String(payload.brandModel), String(payload.customer), String(payload.phone ?? ""), String(payload.issue), String(payload.priority ?? "normal"), day(0), String(payload.dueAt), Number(payload.estimate ?? 0), String(payload.notes ?? "")).run();
-      return json({ ok: true }, 201);
+      const latest = await db.prepare("SELECT MAX(CAST(SUBSTR(ticket_no, 5) AS INTEGER)) AS value FROM repairs WHERE ticket_no LIKE 'FIX-%'").first<{ value: number | null }>();
+      const ticketNo = `FIX-${Math.max(1000, latest?.value ?? 1000) + 1}`;
+      const result = await db.prepare(`INSERT INTO repairs (ticket_no, device, brand_model, customer, phone, issue, status, priority, received_at, due_at, estimate, actual_charge, serial_number, notes) VALUES (?, ?, ?, ?, ?, ?, 'received', ?, ?, ?, ?, ?, ?, ?)`)
+        .bind(ticketNo, String(payload.device), String(payload.brandModel), String(payload.customer), String(payload.phone ?? ""), String(payload.issue), String(payload.priority ?? "normal"), day(0), String(payload.dueAt), Number(payload.estimate ?? 0), Number(payload.actualCharge ?? 0), String(payload.serialNumber ?? ""), String(payload.notes ?? "")).run();
+      return json({ ok: true, id: result.meta.last_row_id, ticketNo }, 201);
     }
     if (request.method === "PATCH") {
       if (!payload.id) return json({ error: "缺少记录 ID" }, 400);
       if (payload.target === "part") {
+        const partStatuses = new Set(["to_order", "ordered", "shipped", "received"]);
+        if (!partStatuses.has(String(payload.status))) return json({ error: "无效的零件状态" }, 400);
         await db.prepare("UPDATE parts SET status = ? WHERE id = ?").bind(String(payload.status), Number(payload.id)).run();
-      } else if (payload.notes !== undefined) {
-        await db.prepare("UPDATE repairs SET status = COALESCE(?, status), notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(payload.status ? String(payload.status) : null, String(payload.notes), Number(payload.id)).run();
       } else {
-        await db.prepare("UPDATE repairs SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(String(payload.status), Number(payload.id)).run();
+        const repairStatuses = new Set(["received", "diagnosing", "waiting_parts", "repairing", "testing", "ready", "collected"]);
+        if (payload.status !== undefined && !repairStatuses.has(String(payload.status))) return json({ error: "无效的工单状态" }, 400);
+        const current = await db.prepare("SELECT * FROM repairs WHERE id = ?").bind(Number(payload.id)).first<Record<string, unknown>>();
+        if (!current) return json({ error: "找不到该工单" }, 404);
+        const value = (key: string, column: string) => payload[key] !== undefined ? payload[key] : current[column];
+        await db.prepare(`UPDATE repairs SET
+          device = ?, brand_model = ?, customer = ?, phone = ?, issue = ?, status = ?, priority = ?,
+          due_at = ?, estimate = ?, actual_charge = ?, is_paid = ?, serial_number = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?`)
+          .bind(
+            String(value("device", "device")), String(value("brandModel", "brand_model")), String(value("customer", "customer")),
+            String(value("phone", "phone")), String(value("issue", "issue")), String(value("status", "status")),
+            String(value("priority", "priority")), String(value("dueAt", "due_at")), Number(value("estimate", "estimate")),
+            Number(value("actualCharge", "actual_charge")), payload.isPaid !== undefined ? (payload.isPaid ? 1 : 0) : Number(current.is_paid),
+            String(value("serialNumber", "serial_number")), String(value("notes", "notes")), Number(payload.id),
+          ).run();
       }
       return json({ ok: true });
     }
