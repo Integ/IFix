@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "ifix-workshop",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-08-12",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ifix-workshop-db",
+      "database_id": "01a1b6b6-436d-445c-b3ec-bbadeab0452c",
+      "migrations_dir": "drizzle"
+    }
+  ]
+}

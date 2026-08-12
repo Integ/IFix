@@ -33,14 +33,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .sidebar nav button:hover { color: white; background: #202c26; }
 .sidebar nav button.active { color: #17211c; background: var(--accent); }
 .sidebar nav button.active > span { background: rgba(23, 33, 28, .12); color: #17211c; }
-.shop-card { margin-top: auto; padding: 13px 10px; border-radius: 14px; background: #202b25; display: flex; align-items: center; gap: 9px; }
-.avatar { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: #17211c; background: #d4bfff; font-size: 11px; font-weight: 800; }
-.shop-card div:nth-child(2) { flex: 1; min-width: 0; }
-.shop-card strong, .shop-card small { display: block; white-space: nowrap; }
-.shop-card strong { font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
-.shop-card small { margin-top: 4px; color: #85938a; font-size: 9px; }
-.shop-card small i { display: inline-block; width: 6px; height: 6px; margin-right: 4px; border-radius: 50%; background: #62d997; }
-.shop-card > svg { color: #758178; }
 .close-menu { display: none; }
 
 .workspace { width: calc(100% - 234px); min-height: 100vh; margin-left: 234px; }

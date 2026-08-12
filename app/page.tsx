@@ -14,7 +14,6 @@ import {
   Computer,
   LayoutDashboard,
   Menu,
-  MoreHorizontal,
   PackageCheck,
   PackageOpen,
   Phone,
@@ -219,11 +218,6 @@ export default function Home() {
           <button className={activeView === "schedule" ? "active" : ""} onClick={() => { setActiveView("schedule"); setMenuOpen(false); }}><CalendarDays /> 交付排期 <span>{overdueCount || ""}</span></button>
           <button className={activeView === "finance" ? "active" : ""} onClick={() => { setActiveView("finance"); setMenuOpen(false); }}><CircleDollarSign /> 费用与收款</button>
         </nav>
-        <div className="shop-card">
-          <div className="avatar">AD</div>
-          <div><strong>Adele 的工作间</strong><small><i /> 今天营业中</small></div>
-          <MoreHorizontal size={18} />
-        </div>
       </aside>
 
       <section className="workspace">
