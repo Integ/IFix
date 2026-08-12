@@ -105,7 +105,7 @@ function json(data: unknown, status = 200) {
 async function workshopApi(request: Request, db: D1Database) {
   try {
     await ensureWorkshopSchema(db);
-    await seedWorkshop(db);
+    if (new URL(request.url).hostname === "localhost") await seedWorkshop(db);
     if (request.method === "GET") {
       const [repairRows, partRows] = await Promise.all([
         db.prepare(`SELECT id, ticket_no AS ticketNo, device, brand_model AS brandModel, customer, phone, issue, status, priority, received_at AS receivedAt, due_at AS dueAt, estimate, actual_charge AS actualCharge, is_paid AS isPaid, serial_number AS serialNumber, notes FROM repairs ORDER BY created_at DESC, id DESC`).all(),
