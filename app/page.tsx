@@ -135,9 +135,18 @@ export default function Home() {
   }, []);
 
   const filteredRepairs = useMemo(() => repairs.filter((repair) => {
-    const text = `${repair.ticketNo} ${repair.device} ${repair.brandModel} ${repair.customer} ${repair.issue}`.toLowerCase();
-    return (filter === "all" || repair.status === filter) && text.includes(search.toLowerCase());
+    const query = search.trim().toLocaleLowerCase("zh-CN");
+    const text = `${repair.ticketNo} ${repair.device} ${repair.brandModel} ${repair.customer} ${repair.phone} ${repair.issue} ${repair.serialNumber} ${repair.notes}`.toLocaleLowerCase("zh-CN");
+    return (filter === "all" || repair.status === filter) && text.includes(query);
   }), [repairs, search, filter]);
+
+  function handleSearch(value: string) {
+    setSearch(value);
+    if (value.trim()) {
+      setFilter("all");
+      setActiveView("repairs");
+    }
+  }
 
   const inShopCount = repairs.filter((item) => item.status !== "collected").length;
   const activeCount = repairs.filter((item) => !["ready", "collected"].includes(item.status)).length;
@@ -227,7 +236,7 @@ export default function Home() {
             <div><p>{fullDate()}</p><h1>{{ dashboard: "工作台总览", repairs: "维修工单", parts: "零件采购", schedule: "交付排期", finance: "费用与收款" }[activeView]}</h1></div>
           </div>
           <div className="header-actions">
-            <label className="global-search"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索工单、设备或客户…" /></label>
+            <label className="global-search"><Search size={17} /><input value={search} onChange={(e) => handleSearch(e.target.value)} placeholder="搜索工单、设备或客户…" aria-label="搜索维修工单" /></label>
             <button className="primary-button" onClick={() => setModal("repair")}><Plus size={18} /> 新建维修</button>
           </div>
         </header>
@@ -250,7 +259,7 @@ export default function Home() {
                   {statusOrder.map((status) => <button key={status} className={filter === status ? "active" : ""} onClick={() => setFilter(filter === status ? "all" : status)}><span className={`status-dot ${statusMeta[status].className}`} />{statusMeta[status].label}<b>{repairs.filter((r) => r.status === status).length}</b></button>)}
                 </div>
                 <div className="repair-list">
-                  {(filter === "all" ? repairs.filter((r) => !["ready", "collected"].includes(r.status)) : filteredRepairs).slice(0, 5).map((repair) => <RepairRow key={repair.id} repair={repair} onOpen={() => setSelected(repair)} />)}
+                  {(filter === "all" ? filteredRepairs.filter((r) => !["ready", "collected"].includes(r.status)) : filteredRepairs).slice(0, 5).map((repair) => <RepairRow key={repair.id} repair={repair} onOpen={() => setSelected(repair)} />)}
                   {!loading && repairs.length === 0 && <EmptyState label="还没有维修工单" />}
                 </div>
               </section>
