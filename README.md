@@ -13,6 +13,26 @@
 
 数据持久化在 Cloudflare D1，应用由 Cloudflare Workers 承载。
 
+## 访问口令
+
+整个站点（页面、`/api/workshop`、图片接口）由 `worker/auth.ts` 用 HTTP Basic Auth 保护。浏览器会弹出登录框：用户名任意，密码为 `APP_PASSWORD`。这是单一共享口令，不是账号系统。
+
+- **部署**：口令存为 Cloudflare Secret，不进仓库。设置后再部署即可；以后改口令重新执行 `secret put`。
+
+  ```bash
+  npx wrangler secret put APP_PASSWORD
+  npm run deploy:cloudflare
+  ```
+
+- **本地开发**：`localhost` 未配置口令时不校验。想在本地测试登录，在项目根目录创建 `.dev.vars`（已被 git 忽略）：
+
+  ```
+  APP_PASSWORD=本地测试口令
+  ```
+
+- **未配置时默认拒绝**：非 localhost 的请求在没有 `APP_PASSWORD` 时返回 503，不会因为漏配而公开数据。
+- 没有登录失败限速，请使用足够长的随机口令；需要更强保护可在 Cloudflare 控制台增加 Rate limiting 规则或改用 Cloudflare Access。
+
 ## Prerequisites
 
 - Node.js `>=22.13.0`

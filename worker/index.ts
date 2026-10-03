@@ -1,8 +1,10 @@
 /** Cloudflare Worker entry point for the vinext-starter template. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
+import { requireAuth } from "./auth";
 
 interface Env {
+  APP_PASSWORD?: string;
   ASSETS: Fetcher;
   DB: D1Database;
   IMAGES: {
@@ -170,6 +172,9 @@ async function workshopApi(request: Request, db: D1Database) {
 
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const denied = await requireAuth(request, env);
+    if (denied) return denied;
+
     const url = new URL(request.url);
 
     if (url.pathname === "/api/workshop") {
