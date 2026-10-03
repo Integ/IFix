@@ -6,7 +6,7 @@ const workerUrl = new URL("../dist/server/index.js", import.meta.url);
 workerUrl.searchParams.set("test", `auth-${process.pid}-${Date.now()}`);
 const { default: worker } = await import(workerUrl.href);
 
-const HOST = "https://ifix.example.workers.dev";
+const HOST = "https://integ.example.workers.dev";
 const PASSWORD = "correct horse: 口令";
 const ctx = { waitUntil() {}, passThroughOnException() {} };
 const assets = { fetch: async () => new Response("Not found", { status: 404 }) };
@@ -52,7 +52,7 @@ test("page and API need the password; every method is blocked without it", async
   assert.equal((await call("/", { env, password: "wrong" })).status, 401);
   const page = await call("/", { env, password: PASSWORD });
   assert.equal(page.status, 200);
-  assert.match(await page.text(), /<title>iFix Workshop/);
+  assert.match(await page.text(), /<title>Integ Workshop/);
 
   for (const method of ["GET", "POST", "PATCH"]) {
     const res = await call("/api/workshop", { env, method, body: method === "GET" ? undefined : "{}" });
