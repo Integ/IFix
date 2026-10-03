@@ -2,6 +2,7 @@
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 import { requireAuth } from "./auth";
+import { inventoryApi } from "./inventory";
 
 interface Env {
   APP_PASSWORD?: string;
@@ -179,6 +180,10 @@ const worker = {
 
     if (url.pathname === "/api/workshop") {
       return workshopApi(request, env.DB);
+    }
+
+    if (url.pathname === "/api/inventory") {
+      return inventoryApi(request, env.DB);
     }
 
     if (url.pathname === "/_vinext/image") {
