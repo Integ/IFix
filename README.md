@@ -13,10 +13,36 @@
 
 数据持久化在 Cloudflare D1，应用由 Cloudflare Workers 承载。
 
+## 访问口令
+
+整个站点（页面、`/api/workshop`、图片接口）由 `worker/auth.ts` 用 HTTP Basic Auth 保护。浏览器会弹出登录框：用户名任意，密码为 `APP_PASSWORD`。这是单一共享口令，不是账号系统。
+
+- **部署**：口令存为 Cloudflare Secret，不进仓库。设置后再部署即可；以后改口令重新执行 `secret put`。
+
+  ```bash
+  npx wrangler secret put APP_PASSWORD
+  npm run deploy:cloudflare
+  ```
+
+- **本地开发**：`localhost` 未配置口令时不校验。想在本地测试登录，在项目根目录创建 `.dev.vars`（已被 git 忽略）：
+
+  ```
+  APP_PASSWORD=本地测试口令
+  ```
+
+- **未配置时默认拒绝**：非 localhost 的请求在没有 `APP_PASSWORD` 时返回 503，不会因为漏配而公开数据。
+- **失败限速**：同一 IP 在一个 15 分钟窗口内（从第一次输错算起）输错 5 次口令即被锁定，直到窗口结束，所以最长锁 15 分钟，期间连正确口令也会被拒绝（429，带 `Retry-After`）；输对一次会清零。失败记录存在 D1 的 `auth_failures` 表中（自动创建，无需迁移）。不带口令的请求不计数、也不写库。
+  - 这是尽力而为的限速：能拖慢持续猜测，但挡不住同时发出的大量并发请求；它按单个 IP 计数，换 IP（包括同一 IPv6 /64 段内换地址）就能绕过。口令本身仍要足够长、足够随机。
+  - D1 出错或超过 1 秒无响应时只会跳过限速，口令校验照常生效。
+  - 本地开发（没有 `CF-Connecting-IP`）不限速。
+  - 需要更强保护可在 Cloudflare 控制台增加 Rate limiting 规则或改用 Cloudflare Access。
+- **链接预览**：整个站点都要口令，聊天软件抓不到页面的预览卡片，这是有意为之。
+
 ## Prerequisites
 
 - Node.js `>=22.13.0`
 - Linux with `flock`, `curl`, and GNU `timeout`
+- 构建时能访问 `fonts.googleapis.com` 和 `fonts.gstatic.com`：Geist 字体在构建时下载并自托管到 `dist/client/assets/_vinext_fonts/`。`.vinext/` 是生成的字体缓存，里面记录了构建机器的绝对路径，已被 git 忽略，不要提交（提交后换一台机器构建，字体地址会 404）。断网构建不会失败，页面会改为运行时从 Google Fonts CDN 加载字体。
 
 ## Sites Lifecycle
 
@@ -103,8 +129,8 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 - `npm run dev`: start the Vite/Vinext development server
 - `npm run build`: build and validate the deployable Sites artifact
 - `npm run start`: start the built Vinext application
-- `npm test`: build, validate, and verify the rendered development-preview metadata
-- `npm run validate:artifact`: recheck an existing artifact's manifest and ESM `default.fetch` export
+- `npm test`: build, validate, then run `tests/*.test.mjs` (rendered metadata and the password gate)
+- `npm run validate:artifact`: recheck an existing artifact's ESM `default.fetch` export (and its Sites manifest, if one is present)
 - `npm run db:generate`: generate Drizzle migrations after schema changes
 
 Use build and validation commands for targeted diagnosis after a remote failure, not as part of the normal checkpoint path.
