@@ -216,7 +216,7 @@ export default function Home() {
   return (
     <main className="app-shell">
       <aside className={`sidebar ${menuOpen ? "open" : ""}`}>
-        <div className="brand"><span className="brand-mark"><Wrench size={20} /></span><span>iFix<small>WORKSHOP</small></span></div>
+        <div className="brand"><span className="brand-mark"><Wrench size={20} /></span><span>Integ<small>WORKSHOP</small></span></div>
         <button className="close-menu" onClick={() => setMenuOpen(false)} aria-label="关闭菜单"><X /></button>
         <nav>
           <p className="nav-label">工作空间</p>

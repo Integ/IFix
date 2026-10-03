@@ -1,4 +1,4 @@
-# iFix Workshop
+# Integ Workshop
 
 为单技师电子产品维修工作室设计的订单追踪与经营管理系统。适用于电脑、手机、相机、电视、游戏主机及小家电等维修业务。
 
@@ -12,6 +12,8 @@
 - 响应式工作台，可在桌面和手机上使用
 
 数据持久化在 Cloudflare D1，应用由 Cloudflare Workers 承载。
+
+> **关于旧名字**：产品名已改为 Integ，但 `wrangler.jsonc` 里的 Worker 名 `ifix-workshop` 和 D1 数据库名 `ifix-workshop-db`（以及 `db:migrate:remote` 脚本里的同名引用）是已部署资源的标识，仍沿用旧名。改 Worker 名会部署出一个全新的 Worker，访问地址变化，`APP_PASSWORD` 等 Secret 也要重新设置；D1 以 `database_id` 为准，只改名字会让命令和实际数据库对不上。工单号前缀 `FIX-` 已写入数据库，同样保持不变。
 
 ## 访问口令
 

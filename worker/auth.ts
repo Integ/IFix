@@ -7,7 +7,7 @@ export interface AuthEnv {
   DB?: D1Database;
 }
 
-const CHALLENGE = 'Basic realm="iFix Workshop", charset="UTF-8"';
+const CHALLENGE = 'Basic realm="Integ Workshop", charset="UTF-8"';
 
 // Lock an IP once it has sent MAX_FAILURES wrong passwords within WINDOW_MS.
 const MAX_FAILURES = 5;
