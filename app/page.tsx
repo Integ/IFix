@@ -5,6 +5,7 @@ import {
   ArrowRight,
   Banknote,
   Box,
+  Boxes,
   CalendarDays,
   Camera,
   Check,
@@ -27,10 +28,11 @@ import {
   X,
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import Inventory from "./inventory";
 
 type Status = "received" | "diagnosing" | "waiting_parts" | "repairing" | "testing" | "ready" | "collected";
 type PartStatus = "to_order" | "ordered" | "shipped" | "received";
-type View = "dashboard" | "repairs" | "parts" | "schedule" | "finance";
+type View = "dashboard" | "repairs" | "parts" | "inventory" | "schedule" | "finance";
 
 type Repair = {
   id: number; ticketNo: string; device: string; brandModel: string; customer: string;
@@ -223,6 +225,7 @@ export default function Home() {
           <button className={activeView === "dashboard" ? "active" : ""} onClick={() => { setActiveView("dashboard"); setMenuOpen(false); }}><LayoutDashboard /> 总览</button>
           <button className={activeView === "repairs" ? "active" : ""} onClick={() => { setActiveView("repairs"); setMenuOpen(false); }}><ClipboardList /> 维修工单 <span>{inShopCount}</span></button>
           <button className={activeView === "parts" ? "active" : ""} onClick={() => { setActiveView("parts"); setMenuOpen(false); }}><PackageOpen /> 零件采购 <span>{parts.filter((p) => p.status !== "received").length}</span></button>
+          <button className={activeView === "inventory" ? "active" : ""} onClick={() => { setActiveView("inventory"); setMenuOpen(false); }}><Boxes /> 库存管理</button>
           <p className="nav-label second">管理</p>
           <button className={activeView === "schedule" ? "active" : ""} onClick={() => { setActiveView("schedule"); setMenuOpen(false); }}><CalendarDays /> 交付排期 <span>{overdueCount || ""}</span></button>
           <button className={activeView === "finance" ? "active" : ""} onClick={() => { setActiveView("finance"); setMenuOpen(false); }}><CircleDollarSign /> 费用与收款</button>
@@ -233,7 +236,7 @@ export default function Home() {
         <header className="topbar">
           <div className="header-title">
             <button className="menu-button" onClick={() => setMenuOpen(true)} aria-label="打开菜单"><Menu /></button>
-            <div><p>{fullDate()}</p><h1>{{ dashboard: "工作台总览", repairs: "维修工单", parts: "零件采购", schedule: "交付排期", finance: "费用与收款" }[activeView]}</h1></div>
+            <div><p>{fullDate()}</p><h1>{{ dashboard: "工作台总览", repairs: "维修工单", parts: "零件采购", inventory: "库存管理", schedule: "交付排期", finance: "费用与收款" }[activeView]}</h1></div>
           </div>
           <div className="header-actions">
             <label className="global-search"><Search size={17} /><input value={search} onChange={(e) => handleSearch(e.target.value)} placeholder="搜索工单、设备或客户…" aria-label="搜索维修工单" /></label>
@@ -336,6 +339,8 @@ export default function Home() {
             </section>
           </div>
         )}
+
+        {activeView === "inventory" && <Inventory />}
 
         {activeView === "finance" && (
           <div className="page-content">

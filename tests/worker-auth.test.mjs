@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { DatabaseSync } from "node:sqlite";
+import { createD1 } from "./d1-stub.mjs";
 
 const workerUrl = new URL("../dist/server/index.js", import.meta.url);
 workerUrl.searchParams.set("test", `auth-${process.pid}-${Date.now()}`);
@@ -10,30 +10,6 @@ const HOST = "https://integ.example.workers.dev";
 const PASSWORD = "correct horse: 口令";
 const ctx = { waitUntil() {}, passThroughOnException() {} };
 const assets = { fetch: async () => new Response("Not found", { status: 404 }) };
-
-// Minimal D1 stand-in backed by a real in-memory SQLite, so the SQL the Worker
-// sends is actually executed.
-function createD1() {
-  const sqlite = new DatabaseSync(":memory:");
-  const statement = (sql, params = []) => ({
-    bind: (...values) => statement(sql, values),
-    first: async () => sqlite.prepare(sql).get(...params) ?? null,
-    all: async () => ({ results: sqlite.prepare(sql).all(...params) }),
-    run: async () => {
-      const result = sqlite.prepare(sql).run(...params);
-      return { meta: { last_row_id: Number(result.lastInsertRowid), changes: Number(result.changes) } };
-    },
-  });
-  return {
-    sqlite,
-    prepare: (sql) => statement(sql),
-    batch: async (statements) => {
-      const results = [];
-      for (const item of statements) results.push(await item.run());
-      return results;
-    },
-  };
-}
 
 const basic = (password) => `Basic ${Buffer.from(`anyone:${password}`, "utf8").toString("base64")}`;
 
