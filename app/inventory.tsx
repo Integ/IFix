@@ -1,7 +1,9 @@
 "use client";
 
-import { AlertCircle, Boxes, CircleDollarSign, Cpu, Laptop, Minus, PackageCheck, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { AlertCircle, Boxes, CircleDollarSign, Cpu, Laptop, Minus, PackageCheck, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { EmptyState, FilterChips, Metric, Modal } from "./ui";
+import { errorOf, money } from "./workshop";
 
 type Kind = "part" | "device";
 type Condition = "good" | "broken";
@@ -20,18 +22,6 @@ const tabs: { key: Tab; label: string }[] = [
 
 const partCategories = ["屏幕", "电池", "主板", "充电接口", "芯片", "排线", "按键", "散热", "其他"];
 const deviceCategories = ["笔记本电脑", "台式电脑", "手机", "平板电脑", "数码相机", "镜头", "电视", "游戏主机", "小家电"];
-
-function money(value: number) {
-  return new Intl.NumberFormat("zh-CN", { style: "currency", currency: "CAD", maximumFractionDigits: 2 }).format(value || 0);
-}
-
-async function errorOf(response: Response, fallback: string) {
-  try {
-    return ((await response.json()) as { error?: string }).error ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
 
 export default function Inventory() {
   const [items, setItems] = useState<Item[]>([]);
@@ -132,24 +122,22 @@ export default function Inventory() {
     <div className="page-content">
       {error && <div className="error-banner inv-error"><AlertCircle size={18} /><span>{error}</span><button onClick={() => { setError(""); void load(); }}>重试</button></div>}
 
-      <section className="metric-grid inv-stats">
-        <Stat icon={<Cpu />} tone="ink" label="零配件" value={loading ? "—" : `${stats.parts} 件`} note={`${stats.partKinds} 种`} />
-        <Stat icon={<PackageCheck />} tone="green" label="完好整机" value={loading ? "—" : `${stats.good} 台`} note="可出售 / 可用" />
-        <Stat icon={<Laptop />} tone="coral" label="损坏整机" value={loading ? "—" : `${stats.broken} 台`} note="待拆件 / 待修" />
-        <Stat icon={<CircleDollarSign />} tone="amber" label="库存成本" value={loading ? "—" : money(stats.value)} note="数量 × 单价" />
+      <section className="metric-grid">
+        <Metric icon={<Cpu />} tone="ink" label="零配件" value={loading ? "—" : `${stats.parts} 件`} note={`${stats.partKinds} 种`} />
+        <Metric icon={<PackageCheck />} tone="green" label="完好整机" value={loading ? "—" : `${stats.good} 台`} note="可出售 / 可用" />
+        <Metric icon={<Laptop />} tone="coral" label="损坏整机" value={loading ? "—" : `${stats.broken} 台`} note="待拆件 / 待修" />
+        <Metric icon={<CircleDollarSign />} tone="amber" label="库存成本" value={loading ? "—" : money(stats.value)} note="数量 × 单价" />
       </section>
 
-      <div className="filter-row inv-toolbar">
-        <div className="status-filters">
-          {tabs.map(({ key, label }) => <button key={key} className={tab === key ? "active" : ""} onClick={() => setTab(key)}>{label} {count(key)}</button>)}
-        </div>
-        <div className="inv-tools">
-          <label className="global-search inv-search"><Search size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索名称、分类、位置…" aria-label="搜索库存" /></label>
+      <div className="toolbar">
+        <FilterChips value={tab} onChange={setTab} options={tabs.map(({ key, label }) => ({ key, label, count: count(key) }))} />
+        <div className="toolbar-end">
+          <label className="search-box"><Search size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索名称、分类、位置" aria-label="搜索库存" /></label>
           <button className="primary-button" onClick={() => setEditing("new")}><Plus size={18} /> 入库</button>
         </div>
       </div>
 
-      <section className="panel repair-table-panel">
+      <section className="panel table-panel">
         <div className="inv-table table-head"><span>名称 / 分类</span><span>类型</span><span>状态</span><span>数量</span><span>位置</span><span>单价</span><span /></div>
         {visible.map((item) => (
           <div key={item.id} className="inv-table inv-row">
@@ -168,33 +156,26 @@ export default function Inventory() {
               <strong>{item.quantity}</strong>
               <button onClick={() => adjust(item, 1)} aria-label={`增加 ${item.name}`}><Plus size={14} /></button>
             </span>
-            <span className="ellipsis inv-location">{item.location || "—"}</span>
-            <span className="inv-cost">{item.unitCost ? money(item.unitCost) : "—"}</span>
+            <span className="ellipsis">{item.location || "—"}</span>
+            <span className="">{item.unitCost ? money(item.unitCost) : "—"}</span>
             <span className="inv-actions">
               <button className="icon-button" onClick={() => setEditing(item)} aria-label={`编辑 ${item.name}`}><Pencil size={15} /></button>
               <button className="icon-button" onClick={() => remove(item)} aria-label={`删除 ${item.name}`}><Trash2 size={15} /></button>
             </span>
           </div>
         ))}
-        {!loading && visible.length === 0 && <div className="empty-state"><Boxes /><p>{items.length === 0 ? "库存是空的，点右上角「入库」开始记录" : "没有符合条件的库存"}</p></div>}
+        {!loading && visible.length === 0 && (items.length === 0
+          ? <EmptyState icon={<Boxes />} title="库存是空的" hint="记录手头的零配件和整机" action={{ label: "入库", onClick: () => setEditing("new") }} />
+          : <EmptyState icon={<Boxes />} title="没有符合条件的库存" />)}
       </section>
 
       {editing && (
-        <div className="overlay modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && setEditing(null)}>
-          <div className="modal-card">
-            <button className="icon-button modal-close" onClick={() => setEditing(null)} aria-label="关闭"><X /></button>
-            <span className="eyebrow">库存</span>
-            <h2>{editing === "new" ? "入库" : "编辑库存"}</h2>
-            <ItemForm key={editing === "new" ? "new" : editing.id} item={editing === "new" ? undefined : editing} saving={saving} onSubmit={save} onCancel={() => setEditing(null)} />
-          </div>
-        </div>
+        <Modal eyebrow="库存" title={editing === "new" ? "入库" : "编辑库存"} onClose={() => setEditing(null)}>
+          <ItemForm key={editing === "new" ? "new" : editing.id} item={editing === "new" ? undefined : editing} saving={saving} onSubmit={save} onCancel={() => setEditing(null)} />
+        </Modal>
       )}
     </div>
   );
-}
-
-function Stat({ icon, label, value, note, tone }: { icon: React.ReactNode; label: string; value: string; note: string; tone: string }) {
-  return <article className="metric-card"><span className={`metric-icon ${tone}`}>{icon}</span><div><p>{label}</p><strong>{value}</strong><small>{note}</small></div></article>;
 }
 
 function ItemForm({ item, saving, onSubmit, onCancel }: { item?: Item; saving: boolean; onSubmit: (event: FormEvent<HTMLFormElement>) => void; onCancel: () => void }) {
