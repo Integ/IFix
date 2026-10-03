@@ -38,6 +38,9 @@ yarn-error.log*
 next-env.d.ts
 /dist/
 /.wrangler/
+# vinext font cache: holds absolute paths of the machine that built it, so it
+# must be regenerated on every build rather than committed
+/.vinext/
 /.sites-runtime/
 /outputs/
 /work/

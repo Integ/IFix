@@ -42,6 +42,7 @@
 
 - Node.js `>=22.13.0`
 - Linux with `flock`, `curl`, and GNU `timeout`
+- 构建时能访问 `fonts.googleapis.com` 和 `fonts.gstatic.com`：Geist 字体在构建时下载并自托管到 `dist/client/assets/_vinext_fonts/`。`.vinext/` 是生成的字体缓存，里面记录了构建机器的绝对路径，已被 git 忽略，不要提交（提交后换一台机器构建，字体地址会 404）。断网构建不会失败，页面会改为运行时从 Google Fonts CDN 加载字体。
 
 ## Sites Lifecycle
 
