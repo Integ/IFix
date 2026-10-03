@@ -31,8 +31,8 @@
   ```
 
 - **未配置时默认拒绝**：非 localhost 的请求在没有 `APP_PASSWORD` 时返回 503，不会因为漏配而公开数据。
-- **失败限速**：同一 IP 在 15 分钟内输错 5 次口令即被锁定 15 分钟，期间连正确口令也会被拒绝（429，带 `Retry-After`）；输对一次会清零。失败记录存在 D1 的 `auth_failures` 表中（自动创建，无需迁移）。不带口令的请求不计数、也不写库。
-  - 这是尽力而为的限速：能拖慢持续猜测，但挡不住同时发出的大量并发请求，口令本身仍要足够长、足够随机。
+- **失败限速**：同一 IP 在一个 15 分钟窗口内（从第一次输错算起）输错 5 次口令即被锁定，直到窗口结束，所以最长锁 15 分钟，期间连正确口令也会被拒绝（429，带 `Retry-After`）；输对一次会清零。失败记录存在 D1 的 `auth_failures` 表中（自动创建，无需迁移）。不带口令的请求不计数、也不写库。
+  - 这是尽力而为的限速：能拖慢持续猜测，但挡不住同时发出的大量并发请求；它按单个 IP 计数，换 IP（包括同一 IPv6 /64 段内换地址）就能绕过。口令本身仍要足够长、足够随机。
   - D1 出错或超过 1 秒无响应时只会跳过限速，口令校验照常生效。
   - 本地开发（没有 `CF-Connecting-IP`）不限速。
   - 需要更强保护可在 Cloudflare 控制台增加 Rate limiting 规则或改用 Cloudflare Access。
@@ -130,7 +130,7 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 - `npm run build`: build and validate the deployable Sites artifact
 - `npm run start`: start the built Vinext application
 - `npm test`: build, validate, then run `tests/*.test.mjs` (rendered metadata and the password gate)
-- `npm run validate:artifact`: recheck an existing artifact's manifest and ESM `default.fetch` export
+- `npm run validate:artifact`: recheck an existing artifact's ESM `default.fetch` export (and its Sites manifest, if one is present)
 - `npm run db:generate`: generate Drizzle migrations after schema changes
 
 Use build and validation commands for targeted diagnosis after a remote failure, not as part of the normal checkpoint path.
