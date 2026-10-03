@@ -31,7 +31,12 @@
   ```
 
 - **未配置时默认拒绝**：非 localhost 的请求在没有 `APP_PASSWORD` 时返回 503，不会因为漏配而公开数据。
-- 没有登录失败限速，请使用足够长的随机口令；需要更强保护可在 Cloudflare 控制台增加 Rate limiting 规则或改用 Cloudflare Access。
+- **失败限速**：同一 IP 在 15 分钟内输错 5 次口令即被锁定 15 分钟，期间连正确口令也会被拒绝（429，带 `Retry-After`）；输对一次会清零。失败记录存在 D1 的 `auth_failures` 表中（自动创建，无需迁移）。不带口令的请求不计数、也不写库。
+  - 这是尽力而为的限速：能拖慢持续猜测，但挡不住同时发出的大量并发请求，口令本身仍要足够长、足够随机。
+  - D1 出错或超过 1 秒无响应时只会跳过限速，口令校验照常生效。
+  - 本地开发（没有 `CF-Connecting-IP`）不限速。
+  - 需要更强保护可在 Cloudflare 控制台增加 Rate limiting 规则或改用 Cloudflare Access。
+- **链接预览**：整个站点都要口令，聊天软件抓不到页面的预览卡片，这是有意为之。
 
 ## Prerequisites
 
@@ -123,7 +128,7 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 - `npm run dev`: start the Vite/Vinext development server
 - `npm run build`: build and validate the deployable Sites artifact
 - `npm run start`: start the built Vinext application
-- `npm test`: build, validate, and verify the rendered development-preview metadata
+- `npm test`: build, validate, then run `tests/*.test.mjs` (rendered metadata and the password gate)
 - `npm run validate:artifact`: recheck an existing artifact's manifest and ESM `default.fetch` export
 - `npm run db:generate`: generate Drizzle migrations after schema changes
 
