@@ -1,4 +1,4 @@
-import { Camera, Computer, Phone, PlugZap, Smartphone, Tv, Wrench } from "lucide-react";
+import { Camera, Computer, Gamepad2, Headphones, Phone, PlugZap, Printer, Speaker, Tablet, Tv, Watch, Wrench } from "lucide-react";
 import { useSyncExternalStore } from "react";
 
 export type Status = "received" | "diagnosing" | "waiting_parts" | "repairing" | "testing" | "ready" | "collected";
@@ -39,16 +39,25 @@ export const partMeta: Record<PartStatus, { label: string; className: string }> 
 export const statusOrder: Status[] = ["received", "diagnosing", "waiting_parts", "repairing", "testing", "ready", "collected"];
 export const partStatusOrder: PartStatus[] = ["to_order", "ordered", "shipped", "received"];
 
-export const deviceCategories = ["笔记本电脑", "台式电脑", "手机", "平板电脑", "数码相机", "镜头", "电视", "游戏主机", "小家电"];
+export const deviceCategories = [
+  "笔记本电脑", "台式电脑", "一体机", "手机", "平板电脑", "智能手表", "耳机", "音箱 / 音响",
+  "数码相机", "镜头", "无人机", "电视", "显示器", "投影仪", "游戏主机", "掌上游戏机",
+  "打印机", "路由器 / 网络设备", "电子书阅读器", "小家电",
+];
 
 export function deviceIcon(device: string) {
   const props = { size: 18, strokeWidth: 1.8 };
-  if (device.includes("相机") || device.includes("镜头")) return <Camera {...props} />;
-  if (device.includes("电脑")) return <Computer {...props} />;
+  if (device.includes("相机") || device.includes("镜头") || device.includes("无人机")) return <Camera {...props} />;
+  if (device.includes("手表")) return <Watch {...props} />;
+  if (device.includes("耳机")) return <Headphones {...props} />;
+  if (device.includes("音箱")) return <Speaker {...props} />;
+  if (device.includes("打印机")) return <Printer {...props} />;
+  if (device.includes("掌上") || device.includes("游戏主机")) return <Gamepad2 {...props} />;
+  if (device.includes("平板") || device.includes("阅读器")) return <Tablet {...props} />;
+  if (device.includes("电脑") || device.includes("一体机") || device.includes("显示器")) return <Computer {...props} />;
   if (device.includes("手机")) return <Phone {...props} />;
-  if (device.includes("电视")) return <Tv {...props} />;
-  if (device.includes("家电")) return <PlugZap {...props} />;
-  if (device.includes("平板") || device.includes("主机")) return <Smartphone {...props} />;
+  if (device.includes("电视") || device.includes("投影")) return <Tv {...props} />;
+  if (device.includes("家电") || device.includes("路由")) return <PlugZap {...props} />;
   return <Wrench {...props} />;
 }
 

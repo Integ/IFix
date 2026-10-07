@@ -3,7 +3,7 @@
 import { AlertCircle, Boxes, CircleDollarSign, Cpu, Laptop, Minus, PackageCheck, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { EmptyState, FilterChips, Metric, Modal } from "./ui";
-import { errorOf, money } from "./workshop";
+import { deviceCategories, deviceIcon, errorOf, money } from "./workshop";
 
 type Kind = "part" | "device";
 type Condition = "good" | "broken";
@@ -21,7 +21,6 @@ const tabs: { key: Tab; label: string }[] = [
 ];
 
 const partCategories = ["屏幕", "电池", "主板", "充电接口", "芯片", "排线", "按键", "散热", "其他"];
-const deviceCategories = ["笔记本电脑", "台式电脑", "手机", "平板电脑", "数码相机", "镜头", "电视", "游戏主机", "小家电"];
 
 export default function Inventory() {
   const [items, setItems] = useState<Item[]>([]);
@@ -29,6 +28,7 @@ export default function Inventory() {
   const [error, setError] = useState("");
   const [tab, setTab] = useState<Tab>("all");
   const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("");
   const [editing, setEditing] = useState<Item | "new" | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -66,12 +66,19 @@ export default function Inventory() {
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return items.filter((item) => {
+      if (category && item.category !== category) return false;
       if (tab === "part" && item.kind !== "part") return false;
       if (tab === "device-good" && !(item.kind === "device" && item.condition === "good")) return false;
       if (tab === "device-broken" && !(item.kind === "device" && item.condition === "broken")) return false;
       return !needle || [item.name, item.category, item.location, item.notes].some((field) => field.toLowerCase().includes(needle));
     });
-  }, [items, tab, query]);
+  }, [items, tab, query, category]);
+
+  const usedCategories = useMemo(() => {
+    const known = [...deviceCategories, ...partCategories];
+    const extra = [...new Set(items.map((item) => item.category).filter((name) => name && !known.includes(name)))];
+    return [...known.filter((name) => items.some((item) => item.category === name)), ...extra];
+  }, [items]);
 
   const count = (key: Tab) => items.filter((item) => key === "all" || (key === "part" ? item.kind === "part" : item.kind === "device" && item.condition === key.slice(7))).length;
 
@@ -132,6 +139,10 @@ export default function Inventory() {
       <div className="toolbar">
         <FilterChips value={tab} onChange={setTab} options={tabs.map(({ key, label }) => ({ key, label, count: count(key) }))} />
         <div className="toolbar-end">
+          <select className="category-filter" value={category} onChange={(e) => setCategory(e.target.value)} aria-label="按设备类别筛选">
+            <option value="">全部类别</option>
+            {usedCategories.map((name) => <option key={name} value={name}>{name}</option>)}
+          </select>
           <label className="search-box"><Search size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索名称、分类、位置" aria-label="搜索库存" /></label>
           <button className="primary-button" onClick={() => setEditing("new")}><Plus size={18} /> 入库</button>
         </div>
@@ -142,7 +153,7 @@ export default function Inventory() {
         {visible.map((item) => (
           <div key={item.id} className="inv-table inv-row">
             <span className="table-device">
-              <span className="device-icon">{item.kind === "part" ? <Cpu size={18} /> : <Laptop size={18} />}</span>
+              <span className="device-icon">{item.kind === "part" ? <Cpu size={18} /> : deviceIcon(item.category)}</span>
               <span><strong>{item.name}</strong><small>{item.category || "未分类"}{item.notes ? ` · ${item.notes}` : ""}</small></span>
             </span>
             <span>{item.kind === "part" ? "零配件" : "整机"}</span>

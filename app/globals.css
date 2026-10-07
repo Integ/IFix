@@ -121,6 +121,7 @@ small { font-size: 12px; }
 /* ---------- toolbar: filter chips + search ---------- */
 .toolbar { margin-bottom: 14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; }
 .toolbar-end { display: flex; align-items: center; gap: 10px; }
+.category-filter { height: 40px; padding: 0 10px; border: 1px solid #d6ddd7; border-radius: 11px; background: #fafbf9; color: var(--ink); font-size: 14px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chips button { min-height: 38px; padding: 0 14px; border: 1px solid #dce2dd; border-radius: 999px; background: white; color: #4f5f56; font-size: 14px; font-weight: 650; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
 .chips button:hover { background: #f6f8f5; }
@@ -278,6 +279,7 @@ small { font-size: 12px; }
   .toolbar { gap: 10px; }
   .toolbar > .primary-button { width: 100%; }
   .toolbar-end { width: 100%; }
+  .category-filter { min-width: 0; flex: 0 1 40%; }
   .search-box { width: 100%; flex: 1; }
   .chips { flex-wrap: nowrap; overflow-x: auto; margin: 0 -14px; padding: 0 14px 2px; scrollbar-width: none; width: calc(100% + 28px); }
   .chips button { flex: 0 0 auto; }
